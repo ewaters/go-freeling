@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"log"
 	"fmt"
 	"net"
 )
@@ -15,6 +16,7 @@ const (
 type Client struct {
 	conn net.Conn
 	br   *bufio.Reader
+	Debug bool
 }
 
 func New(addr string) (*Client, error) {
@@ -52,12 +54,16 @@ type Token struct {
 	Tag    string
 	Tense  string
 	Type   string
+	WN string
+	NEClass string
+	NEC string
 }
 
 func (t Token) String() string {
 	return fmt.Sprintf("%s %s %s", t.Form, t.Lemma, t.Tag)
 }
 
+// Phrase ("sentence")
 type Phrase struct {
 	ID     string
 	Tokens []Token
@@ -72,6 +78,7 @@ func (p Phrase) String() string {
 	return b.String()
 }
 
+// Document ("paragraph")
 type Document struct {
 	Phrases []Phrase
 }
@@ -128,7 +135,9 @@ func (c *Client) Send(msg string) (string, error) {
 }
 
 func (c *Client) write(msg string) error {
-	// log.Printf(">>> %q", msg)
+	if c.Debug {
+		log.Printf(">>> %q", msg)
+	}
 	_, err := fmt.Fprint(c.conn, msg+"\u0000")
 	return err
 }
@@ -139,6 +148,8 @@ func (c *Client) read() (string, error) {
 		return "", err
 	}
 	s := string(b[:len(b)-1])
-	// log.Printf("<<< %q", s)
+	if c.Debug {
+		log.Printf("<<< %q", s)
+	}
 	return s, err
 }
