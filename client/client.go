@@ -7,6 +7,7 @@ import (
 	"log"
 	"fmt"
 	"net"
+	"sync"
 )
 
 const (
@@ -17,6 +18,7 @@ type Client struct {
 	conn net.Conn
 	br   *bufio.Reader
 	Debug bool
+	mu sync.Mutex
 }
 
 func New(addr string) (*Client, error) {
@@ -106,6 +108,9 @@ func (c *Client) Process(msg string) (*Document, error) {
 }
 
 func (c *Client) Send(msg string) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if err := c.write(msg); err != nil {
 		return "", err
 	}
