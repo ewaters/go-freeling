@@ -17,4 +17,6 @@ RUN locale-gen en_US.UTF-8 && \
 	apt-get purge -y \
 		libboost-system-dev libboost-program-options-dev libboost-regex-dev libboost-thread-dev \
 		libicu-dev zlib1g-dev git build-essential automake autoconf libtool && \
-	apt-get autoremove -y
+	apt-get autoremove -y && \
+	apt-get clean -y && \
+	rm -rf /var/lib/apt/lists/*

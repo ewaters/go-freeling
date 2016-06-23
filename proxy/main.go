@@ -2,20 +2,32 @@ package main
 
 import (
 	"flag"
-	"net/http"
-	"log"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
 	freeling "../client"
 )
 
 var (
 	flAddr = flag.String("fl_addr", "", "")
-	addr = flag.String("addr", ":8080", "")
-	debug = flag.Bool("debug", false, "")
+	addr   = flag.String("addr", ":8080", "")
+	debug  = flag.Bool("debug", false, "")
 )
+
+func logExit(msg string, args ...interface{}) {
+	fmt.Printf(msg+"\n", args...)
+	os.Exit(1)
+}
 
 func main() {
 	flag.Parse()
+
+	if *flAddr == "" {
+		logExit("--fl_addr=... is required")
+	}
 
 	client, err := freeling.New(*flAddr)
 	if err != nil {
@@ -26,7 +38,7 @@ func main() {
 
 	http.HandleFunc("/freeling-es-json", func(w http.ResponseWriter, r *http.Request) {
 		failed := func(format string, args ...interface{}) {
-			fmt.Fprintf(w, "Failed: " + format, args...)
+			fmt.Fprintf(w, "Failed: "+format, args...)
 		}
 
 		msg := r.FormValue("text")
@@ -36,13 +48,17 @@ func main() {
 			return
 		}
 
-		res, err := client.Send(msg)
+		strs, err := client.Send(msg)
 		if err != nil {
 			failed("freeling Send(%q) failed: %v", msg, err)
 			return
 		}
+		res := strings.Join(strs, ", ")
 
 		w.Header().Add("Content-Type", "application/json")
+		if *debug {
+			fmt.Printf("\n\n[%s]\n\n", res)
+		}
 		fmt.Fprintf(w, "[%s]", res)
 	})
 

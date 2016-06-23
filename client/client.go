@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"log"
 	"fmt"
+	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -15,10 +16,10 @@ const (
 )
 
 type Client struct {
-	conn net.Conn
-	br   *bufio.Reader
+	conn  net.Conn
+	br    *bufio.Reader
 	Debug bool
-	mu sync.Mutex
+	mu    sync.Mutex
 }
 
 func New(addr string) (*Client, error) {
@@ -43,22 +44,22 @@ func (c *Client) Close() {
 }
 
 type Token struct {
-	CTag   string
-	Case   string
-	Form   string
-	Gen    string
-	ID     string
-	Lemma  string
-	Mood   string
-	Num    string
-	POS    string
-	Person string
-	Tag    string
-	Tense  string
-	Type   string
-	WN string
+	CTag    string
+	Case    string
+	Form    string
+	Gen     string
+	ID      string
+	Lemma   string
+	Mood    string
+	Num     string
+	POS     string
+	Person  string
+	Tag     string
+	Tense   string
+	Type    string
+	WN      string
 	NEClass string
-	NEC string
+	NEC     string
 }
 
 func (t Token) String() string {
@@ -94,47 +95,48 @@ func (d Document) String() string {
 }
 
 func (c *Client) Process(msg string) (*Document, error) {
-	s, err := c.Send(msg)
+	strs, err := c.Send(msg)
 	if err != nil {
 		return nil, err
 	}
 	d := &Document{
 		Phrases: make([]Phrase, 0),
 	}
+	s := strings.Join(strs, ", ")
 	if err := json.Unmarshal([]byte("["+s+"]"), &d.Phrases); err != nil {
 		return nil, err
 	}
 	return d, nil
 }
 
-func (c *Client) Send(msg string) (string, error) {
+func (c *Client) Send(msg string) ([]string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if err := c.write(msg); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	ret := ""
+	var ret []string
 
 	res, err := c.read()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if res != flServerReady {
-		ret = res
+		ret = append(ret, res)
 	}
 
 	if err := c.write("FLUSH_BUFFER"); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	res, err = c.read()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if res != flServerReady {
-		ret += res
+		ret = append(ret, res)
 	}
 	return ret, nil
 }
