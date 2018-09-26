@@ -1,0 +1,32 @@
+version: "3"
+services:
+  de:
+    image: gcr.io/spanish-learning-assistant/freeling-4.1:v1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+     - "10001"
+    command: analyze -f de.cfg --outlv tagged --output json --server --port 10001
+  es:
+    image: gcr.io/spanish-learning-assistant/freeling-4.1:v1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "10002"
+    command: analyze -f es.cfg --outlv tagged --output json --server --port 10002
+  frontend:
+    image: gcr.io/spanish-learning-assistant/freeling-proxy
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "80:80"
+    depends_on:
+      - de
+      - es
+    command: [ "freeling-proxy", "--addr", ":80", "--langs", "de=de:10001;es=es:10002" ]
