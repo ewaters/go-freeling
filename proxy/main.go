@@ -52,9 +52,13 @@ func main() {
 		time.Sleep(*retryDelay)
 	}
 
+	var endpoints []string
 	for lang := range clients {
-		http.HandleFunc(fmt.Sprintf("/freeling-%s-json", lang), handlerForLang(lang))
+		url := fmt.Sprintf("/freeling-%s-json", lang)
+		http.HandleFunc(url, handlerForLang(lang))
+		endpoints = append(endpoints, url)
 	}
+	http.HandleFunc("/", rootHandler(endpoints))
 	
 	log.Printf("Listening for HTTP connections on %s...", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
@@ -74,6 +78,15 @@ func connectAll(config map[string]string) error {
 		clients[lang] = client
 	}
 	return nil
+}
+
+func rootHandler(endpoints []string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		for _, endpoint := range endpoints {
+			fmt.Fprintf(w, "Endpoint <a href=%q>%s</a></br>", endpoint, endpoint)
+		}
+	}
 }
 
 func handlerForLang(lang string) func(http.ResponseWriter, *http.Request) {

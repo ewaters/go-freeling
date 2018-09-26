@@ -16,3 +16,4 @@
   $ git clone https://github.com/ewaters/go-freeling.git
   $ cd go-freeling
   $ docker-compose up -d
+  $ docker-compose logs --follow
