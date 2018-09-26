@@ -7,14 +7,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	freeling "../client"
 )
 
 var (
-	addr   = flag.String("addr", ":8080", "")
-	debug  = flag.Bool("debug", false, "")
-	langs = flag.String("langs", "de=:10001;es=:10002", "")
+	addr       = flag.String("addr", ":8080", "")
+	debug      = flag.Bool("debug", false, "")
+	langs      = flag.String("langs", "de=:10001;es=:10002", "")
+	retryDelay = flag.Duration("retry_delay", 5 * time.Second, "")
 
 	clients map[string]*freeling.Client
 )
@@ -40,16 +42,14 @@ func main() {
 		config[parts[0]] = parts[1]
 	}
 
-
 	clients = make(map[string]*freeling.Client)
-	for lang, addr := range config {
-		client, err := freeling.New(addr)
-		if err != nil {
-			logExit("Failed to create Freeling client for %s (%q): %v", lang, addr, err)
+	for {
+		err := connectAll(config)
+		if err == nil {
+			break
 		}
-		client.Debug = *debug
-		defer client.Close()
-		clients[lang] = client
+		log.Printf("Failed connectAll: %v; will retry in %v", err, *retryDelay)
+		time.Sleep(*retryDelay)
 	}
 
 	for lang := range clients {
@@ -58,6 +58,22 @@ func main() {
 	
 	log.Printf("Listening for HTTP connections on %s...", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
+}
+
+func connectAll(config map[string]string) error {
+	for lang, addr := range config {
+		if _, ok := clients[lang]; ok {
+			continue
+		}
+		log.Printf("Dialing %q on %q", lang, addr)
+		client, err := freeling.New(addr)
+		if err != nil {
+			return err
+		}
+		client.Debug = *debug
+		clients[lang] = client
+	}
+	return nil
 }
 
 func handlerForLang(lang string) func(http.ResponseWriter, *http.Request) {
