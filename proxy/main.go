@@ -18,6 +18,7 @@ var (
 	langs      = flag.String("langs", "de=:10001;es=:10002", "")
 	retryDelay = flag.Duration("retry_delay", 5 * time.Second, "")
 
+	config map[string]string
 	clients map[string]*freeling.Client
 )
 
@@ -33,7 +34,7 @@ func main() {
 	if *langs == "" {
 		logExit("--langs=... is required")
 	}
-	config := map[string]string{}
+	config = map[string]string{}
 	for _, pair := range strings.Split(*langs, ";") {
 		parts := strings.SplitN(pair, "=", 2)
 		if len(parts) != 2 {
@@ -43,14 +44,7 @@ func main() {
 	}
 
 	clients = make(map[string]*freeling.Client)
-	for {
-		err := connectAll(config)
-		if err == nil {
-			break
-		}
-		log.Printf("Failed connectAll: %v; will retry in %v", err, *retryDelay)
-		time.Sleep(*retryDelay)
-	}
+	connectAll()
 
 	var endpoints []string
 	for lang := range clients {
@@ -64,19 +58,41 @@ func main() {
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
-func connectAll(config map[string]string) error {
+func connectAll() {
 	for lang, addr := range config {
 		if _, ok := clients[lang]; ok {
 			continue
 		}
-		log.Printf("Dialing %q on %q", lang, addr)
-		client, err := freeling.New(addr)
-		if err != nil {
-			return err
-		}
-		client.Debug = *debug
-		clients[lang] = client
+		connectOneRetry(lang)
 	}
+}
+
+func connectOneRetry(lang string) {
+	for {
+		err := connectOne(lang)
+		if err == nil {
+			return
+		}
+		log.Printf("Failed connectOne(%q): %v; will retry in %v", lang, err, *retryDelay)
+		time.Sleep(*retryDelay)
+	}
+}
+
+func connectOne(lang string) error {
+	addr, ok := config[lang]
+	if !ok {
+		return fmt.Errorf("Can't connectOne(%q): no addr", lang)
+	}
+	if client, ok := clients[lang]; ok {
+		client.Close()
+	}
+	log.Printf("Dialing %q on %q", lang, addr)
+	client, err := freeling.New(addr)
+	if err != nil {
+		return err
+	}
+	client.Debug = *debug
+	clients[lang] = client
 	return nil
 }
 
@@ -107,6 +123,11 @@ func handlerForLang(lang string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		strs, err := client.Send(msg)
+		if err != nil && strings.Contains(err.String(), "broken pipe") {
+			log.Printf("Broken pipe %q; reconnecting", lang)
+			connectOneRetry(lang)
+			strs, err = client.Send(msg)
+		}
 		if err != nil {
 			failed("freeling Send(%q) failed: %v", msg, err)
 			return
