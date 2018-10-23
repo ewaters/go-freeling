@@ -59,7 +59,7 @@ func main() {
 }
 
 func connectAll() {
-	for lang, addr := range config {
+	for lang := range config {
 		if _, ok := clients[lang]; ok {
 			continue
 		}
@@ -123,7 +123,7 @@ func handlerForLang(lang string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		strs, err := client.Send(msg)
-		if err != nil && strings.Contains(err.String(), "broken pipe") {
+		if err != nil && strings.Contains(err.Error(), "broken pipe") {
 			log.Printf("Broken pipe %q; reconnecting", lang)
 			connectOneRetry(lang)
 			strs, err = client.Send(msg)
