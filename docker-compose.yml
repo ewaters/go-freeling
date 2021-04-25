@@ -1,17 +1,17 @@
 version: "3.9"
 services:
   de:
-    image: freeling-4.2:v1
+    image: freeling-4.2:v2
     ports:
      - "10001"
     command: analyze -f de.cfg --outlv tagged --output json --server --port 10001
   es:
-    image: freeling-4.2:v1
+    image: freeling-4.2:v2
     ports:
       - "10002"
     command: analyze -f es.cfg --outlv tagged --output json --server --port 10002
   it:
-    image: freeling-4.2:v1
+    image: freeling-4.2:v2
     ports:
       - "10003"
     command: analyze -f it.cfg --outlv tagged --output json --server --port 10003

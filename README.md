@@ -15,5 +15,11 @@
 * Start the stack:
   $ git clone https://github.com/ewaters/go-freeling.git
   $ cd go-freeling
-  $ docker-compose up -d
-  $ docker-compose logs --follow
+  $ docker compose up -d
+  $ docker compose logs --follow
+
+* Test the stack:
+  $ curl "localhost:80/freeling-it-json?text=io+sono+Eric"
+
+* Stop:
+  $ docker compose stop
