@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	freeling "../client"
+	freeling "github.com/ewaters/go-freeling/client"
 )
 
 var (
 	addr       = flag.String("addr", ":8080", "")
 	debug      = flag.Bool("debug", false, "")
 	langs      = flag.String("langs", "de=:10001;es=:10002", "")
-	retryDelay = flag.Duration("retry_delay", 5 * time.Second, "")
+	retryDelay = flag.Duration("retry_delay", 5*time.Second, "")
 
-	config map[string]string
+	config  map[string]string
 	clients map[string]*freeling.Client
 )
 
@@ -26,7 +26,6 @@ func logExit(msg string, args ...interface{}) {
 	fmt.Printf(msg+"\n", args...)
 	os.Exit(1)
 }
-
 
 func main() {
 	flag.Parse()
@@ -38,7 +37,7 @@ func main() {
 	for _, pair := range strings.Split(*langs, ";") {
 		parts := strings.SplitN(pair, "=", 2)
 		if len(parts) != 2 {
-			logExit("--config %q was invalid; must take form '<lang>=<addr>[;...]'", *langs) 
+			logExit("--config %q was invalid; must take form '<lang>=<addr>[;...]'", *langs)
 		}
 		config[parts[0]] = parts[1]
 	}
@@ -53,7 +52,7 @@ func main() {
 		endpoints = append(endpoints, url)
 	}
 	http.HandleFunc("/", rootHandler(endpoints))
-	
+
 	log.Printf("Listening for HTTP connections on %s...", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }

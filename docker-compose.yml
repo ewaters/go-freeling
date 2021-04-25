@@ -1,20 +1,26 @@
-version: "3"
+version: "3.9"
 services:
   de:
-    image: gcr.io/spanish-learning-assistant/freeling-4.1:v1
+    image: freeling-4.2:v1
     ports:
      - "10001"
     command: analyze -f de.cfg --outlv tagged --output json --server --port 10001
   es:
-    image: gcr.io/spanish-learning-assistant/freeling-4.1:v1
+    image: freeling-4.2:v1
     ports:
       - "10002"
     command: analyze -f es.cfg --outlv tagged --output json --server --port 10002
+  it:
+    image: freeling-4.2:v1
+    ports:
+      - "10003"
+    command: analyze -f it.cfg --outlv tagged --output json --server --port 10003
   frontend:
-    image: gcr.io/spanish-learning-assistant/freeling-proxy
+    image: freeling-proxy
     ports:
       - "80:80"
     depends_on:
       - de
       - es
-    command: [ "freeling-proxy", "--addr", ":80", "--langs", "de=de:10001;es=es:10002" ]
+      - it
+    command: [ "freeling-proxy", "--addr", ":80", "--langs", "de=de:10001;es=es:10002;it=it:10003" ]
